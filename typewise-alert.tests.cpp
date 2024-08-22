@@ -28,15 +28,16 @@ TEST(TypeWiseAlertTestSuite, SendsAlertToEmail) {
 }
 
 TEST(TypeWiseAlertTestSuite, MonitorAndNotify) {
-    BatteryDetails battery = {HIGH_ACTIVE_STRATEGY, "BrandY"};
+    BatteryDetails battery = {PASSIVE_STRATEGY, "BrandX"};
     
     testing::internal::CaptureStdout();
-    monitorAndNotify(CONTROLLER_ALERT, battery, 50);
+    monitorAndNotify(CONTROLLER_ALERT, battery, 36);
     std::string outputController = testing::internal::GetCapturedStdout();
     EXPECT_EQ(outputController, "feed : 2\n");
 
     testing::internal::CaptureStdout();
-    monitorAndNotify(EMAIL_ALERT, battery, 5);
+    monitorAndNotify(EMAIL_ALERT, battery, -1);
     std::string outputEmail = testing::internal::GetCapturedStdout();
-    EXPECT_EQ(outputEmail, "To: a.b@c.com\nHi, the temperature is within the normal range\n");
+    EXPECT_EQ(outputEmail, "To: a.b@c.com\nHi, the temperature is below the threshold\n");
 }
+
