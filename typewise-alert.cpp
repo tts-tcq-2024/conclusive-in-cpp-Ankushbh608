@@ -1,71 +1,49 @@
 #include "typewise-alert.h"
 #include <stdio.h>
 
-BreachType inferBreach(double value, double lowerLimit, double upperLimit) {
-  if(value < lowerLimit) {
-    return TOO_LOW;
-  }
-  if(value > upperLimit) {
-    return TOO_HIGH;
-  }
-  return NORMAL;
+TemperatureStatus assessTemperature(double currentTemp, double minLimit, double maxLimit) {
+    return (currentTemp < minLimit) ? TEMP_TOO_LOW : (currentTemp > maxLimit) ? TEMP_TOO_HIGH : TEMP_NORMAL;
 }
 
-BreachType classifyTemperatureBreach(
-    CoolingType coolingType, double temperatureInC) {
-  int lowerLimit = 0;
-  int upperLimit = 0;
-  switch(coolingType) {
-    case PASSIVE_COOLING:
-      lowerLimit = 0;
-      upperLimit = 35;
-      break;
-    case HI_ACTIVE_COOLING:
-      lowerLimit = 0;
-      upperLimit = 45;
-      break;
-    case MED_ACTIVE_COOLING:
-      lowerLimit = 0;
-      upperLimit = 40;
-      break;
-  }
-  return inferBreach(temperatureInC, lowerLimit, upperLimit);
+TemperatureRange fetchTemperatureRange(CoolingStrategy strategy) {
+    static const TemperatureRange ranges[] = {
+        {0, 35},  // PASSIVE_STRATEGY
+        {0, 45},  // HIGH_ACTIVE_STRATEGY
+        {0, 40}   // MEDIUM_ACTIVE_STRATEGY
+    };
+    return ranges[strategy];
 }
 
-void checkAndAlert(
-    AlertTarget alertTarget, BatteryCharacter batteryChar, double temperatureInC) {
-
-  BreachType breachType = classifyTemperatureBreach(
-    batteryChar.coolingType, temperatureInC
-  );
-
-  switch(alertTarget) {
-    case TO_CONTROLLER:
-      sendToController(breachType);
-      break;
-    case TO_EMAIL:
-      sendToEmail(breachType);
-      break;
-  }
+TemperatureStatus determineBreach(CoolingStrategy strategy, double tempCelsius) {
+    TemperatureRange range = fetchTemperatureRange(strategy);
+    return assessTemperature(tempCelsius, range.minTemp, range.maxTemp);
 }
 
-void sendToController(BreachType breachType) {
-  const unsigned short header = 0xfeed;
-  printf("%x : %x\n", header, breachType);
+void monitorAndNotify(AlertMethod method, BatteryDetails battery, double tempCelsius) {
+    TemperatureStatus status = determineBreach(battery.strategy, tempCelsius);
+    triggerAlert(method, status);
 }
 
-void sendToEmail(BreachType breachType) {
-  const char* recepient = "a.b@c.com";
-  switch(breachType) {
-    case TOO_LOW:
-      printf("To: %s\n", recepient);
-      printf("Hi, the temperature is too low\n");
-      break;
-    case TOO_HIGH:
-      printf("To: %s\n", recepient);
-      printf("Hi, the temperature is too high\n");
-      break;
-    case NORMAL:
-      break;
-  }
+void triggerAlert(AlertMethod method, TemperatureStatus status) {
+    if(method == CONTROLLER_ALERT) {
+        alertController(status);
+    } else if(method == EMAIL_ALERT) {
+        alertViaEmail(status);
+    }
+}
+
+void alertController(TemperatureStatus status) {
+    const unsigned short protocolHeader = 0xfeed;
+    printf("%x : %x\n", protocolHeader, status);
+}
+
+void alertViaEmail(TemperatureStatus status) {
+    const char* recipient = "a.b@c.com";
+    if (status == TEMP_TOO_LOW) {
+        printf("To: %s\n", recipient);
+        printf("Hi, the temperature is below the threshold\n");
+    } else if (status == TEMP_TOO_HIGH) {
+        printf("To: %s\n", recipient);
+        printf("Hi, the temperature exceeds the safe limit\n");
+    }
 }
