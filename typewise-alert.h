@@ -1,32 +1,37 @@
 #pragma once
 
 typedef enum {
-  PASSIVE_COOLING,
-  HI_ACTIVE_COOLING,
-  MED_ACTIVE_COOLING
-} CoolingType;
+    PASSIVE_STRATEGY,
+    HIGH_ACTIVE_STRATEGY,
+    MEDIUM_ACTIVE_STRATEGY
+} CoolingStrategy;
 
 typedef enum {
-  NORMAL,
-  TOO_LOW,
-  TOO_HIGH
-} BreachType;
-
-BreachType inferBreach(double value, double lowerLimit, double upperLimit);
-BreachType classifyTemperatureBreach(CoolingType coolingType, double temperatureInC);
-
-typedef enum {
-  TO_CONTROLLER,
-  TO_EMAIL
-} AlertTarget;
+    TEMP_NORMAL,
+    TEMP_TOO_LOW,
+    TEMP_TOO_HIGH
+} TemperatureStatus;
 
 typedef struct {
-  CoolingType coolingType;
-  char brand[48];
-} BatteryCharacter;
+    int minTemp;
+    int maxTemp;
+} TemperatureRange;
 
-void checkAndAlert(
-  AlertTarget alertTarget, BatteryCharacter batteryChar, double temperatureInC);
+TemperatureStatus assessTemperature(double currentTemp, double minTemp, double maxTemp);
+TemperatureRange fetchTemperatureRange(CoolingStrategy strategy);
+TemperatureStatus determineBreach(CoolingStrategy strategy, double tempCelsius);
 
-void sendToController(BreachType breachType);
-void sendToEmail(BreachType breachType);
+typedef enum {
+    CONTROLLER_ALERT,
+    EMAIL_ALERT
+} AlertMethod;
+
+typedef struct {
+    CoolingStrategy strategy;
+    char brandName[48];
+} BatteryDetails;
+
+void monitorAndNotify(AlertMethod method, BatteryDetails battery, double tempCelsius);
+void triggerAlert(AlertMethod method, TemperatureStatus status);
+void alertController(TemperatureStatus status);
+void alertViaEmail(TemperatureStatus status);
